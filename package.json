@@ -1,0 +1,16 @@
+{
+  "name": "nzxt-kraken-image-generator",
+  "version": "0.0.0",
+  "description": "NZXT Kraken Z series image generator",
+  "main": "generate.js",
+  "author": "Luca GOUTY",
+  "license": "MIT",
+  "scripts": {
+    "generate": "node ./generator.js"
+  },
+  "dependencies": {
+    "csvtojson": "^2.0.10",
+    "gifencoder": "^2.0.1",
+    "text2png": "^2.3.0"
+  }
+}
