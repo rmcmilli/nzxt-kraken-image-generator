@@ -7,7 +7,9 @@ const { DEBUG } = process.env
 
 // Node Canvas Docs: https://github.com/Automattic/node-canvas/blob/master/Readme.md
 
+const IMAGE_RADIUS = 160
 const IMAGE_OUTPUT = './output/generated.gif'
+
 const GAUGE_WIDTH = 38
 
 const FONT = {
@@ -74,9 +76,8 @@ const arc = (ctx, color, x, y, radius, rx, ry, reverse) => {
   ctx.fill()
 }
 
-const percentToPi = (percent, left) => {
-  if (left) return [Math.PI + -Math.PI / percent, Math.PI + Math.PI / percent]
-  else return [-Math.PI / percent, Math.PI / percent]
+const background = (ctx, color, radius) => {
+  arc(ctx, color, IMAGE_RADIUS, IMAGE_RADIUS, radius, 0, 2 * Math.PI, false)
 }
 
 const gauge = (ctx, frame) => {
@@ -85,7 +86,12 @@ const gauge = (ctx, frame) => {
   ctx.strokeStyle = frame.left ? COLORS.left : COLORS.right
   ctx.lineWidth = GAUGE_WIDTH
   ctx.lineCap = 'round'
-  ctx.arc(160, 160, 160 - GAUGE_WIDTH / 2, ...percentToPi(usage, frame.left))
+  ctx.arc(
+    IMAGE_RADIUS,
+    IMAGE_RADIUS,
+    IMAGE_RADIUS - GAUGE_WIDTH / 2,
+    ...percentToPi(usage, frame.left),
+  )
   ctx.fill()
   ctx.stroke()
 }
@@ -97,7 +103,12 @@ const splitText = (ctx, frame) => {
   text(ctx, frame.title, xpos, 200)
   ctx.fillStyle = COLORS.white
   ctx.font = `${FONT.sizes[0]}px "${FONT.familly}"`
-  text(ctx, frame.value, xpos, 160)
+  text(ctx, frame.value, xpos, IMAGE_RADIUS)
+}
+
+const percentToPi = (percent, left) => {
+  if (left) return [Math.PI + -Math.PI / percent, Math.PI + Math.PI / percent]
+  else return [-Math.PI / percent, Math.PI / percent]
 }
 
 const frameToUsage = (frame) => {
@@ -121,8 +132,8 @@ const frame = (image, frames) => {
   const canvas = createCanvas(320, 320)
   const ctx = canvas.getContext('2d')
   // Background
-  arc(ctx, COLORS.circle, 160, 160, 160, 0, 2 * Math.PI, false)
-  arc(ctx, COLORS.background, 160, 160, 160 - GAUGE_WIDTH, 0, 2 * Math.PI, false)
+  background(ctx, COLORS.circle, IMAGE_RADIUS)
+  background(ctx, COLORS.background, IMAGE_RADIUS - GAUGE_WIDTH)
   // Helpers
   if (DEBUG) square(ctx, 60, 60, 260, 260)
   // Metrics
@@ -139,7 +150,11 @@ const frame = (image, frames) => {
 const generate = async (metrics) => {
   const image = await loadImage('./images/kraken.png')
   const groups = map(GROUPS, (group) => {
-    return map(group, (g, i) => ({ ...g, value: metrics[g.metric] || '-', left: i === 0 }))
+    return map(group, (g, i) => ({
+      ...g,
+      value: metrics[g.metric] || '-',
+      left: i === 0,
+    }))
   })
   const frames = groups.map((group) => frame(image, group))
   const encoder = new GIFEncoder(320, 320)

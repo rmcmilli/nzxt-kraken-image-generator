@@ -12,32 +12,39 @@ const sumBy = (list, key, factor = 1, fixed = 0, suffix = '') => {
 
 const cleanUnits = (str) => str.replace(/°[CF]/, '°').replace(/rpm/, '')
 
+const liquidctl = async (device) => {
+  const { stdout } = await exec(`liquidctl status --match ${device} --json`)
+  const status = JSON.parse(stdout)[0].status
+  const info = map(keyBy(status, 'key'), ({ value, unit }, k) => {
+    const key = k.replace(/ /g, '_').toLowerCase()
+    return { [key]: `${Math.round(value)}${cleanUnits(unit)}` }
+  })
+  return merge(...info)
+}
+
+const intelPowerGadget = async () => {
+  const script = '/Applications/Intel\\ Power\\ Gadget/PowerLog'
+  const output = './output/PowerLog.csv'
+  await exec(`${script} -duration 1 -file ${output}`)
+  const list = await csv().fromFile(output)
+  return {
+    cpu_freq: sumBy(list, 'CPU Frequency_0(MHz)', 0.001, 1, 'G'),
+    cpu_power: sumBy(list, 'Processor Power_0(Watt)', 1, 0, 'W'),
+    cpu_usage: sumBy(list, 'CPU Utilization(%)', 1, 0, '%'),
+    cpu_temp: sumBy(list, 'Package Temperature_0(C)', 1, 0, '°'),
+    cpu_maxtemp: sumBy(list, 'CPU Max Temperature_0(C)', 1, 1, '°'),
+    cpu_maxfreq: sumBy(list, 'CPU Max Frequency_0(MHz)', 0.001, 1, 'G'),
+  }
+}
+
 module.exports = {
-  cpu: async () => {
-    const { stdout } = await exec('osx-cpu-temp')
-    return cleanUnits(stdout)
-  },
-  liquidctl: async (device) => {
-    const { stdout } = await exec(`liquidctl status --match ${device} --json`)
-    const status = JSON.parse(stdout)[0].status
-    const info = map(keyBy(status, 'key'), ({ value, unit }, k) => {
-      const key = k.replace(/ /g, '_').toLowerCase()
-      return { [key]: `${Math.round(value)}${cleanUnits(unit)}` }
-    })
-    return merge(...info)
-  },
-  intel: async () => {
-    const script = '/Applications/Intel\\ Power\\ Gadget/PowerLog'
-    const output = './output/PowerLog.csv'
-    await exec(`${script} -duration 1 -file ${output}`)
-    const list = await csv().fromFile(output)
-    return {
-      cpu_freq: sumBy(list, 'CPU Frequency_0(MHz)', 0.001, 1, 'G'),
-      cpu_power: sumBy(list, 'Processor Power_0(Watt)', 1, 0, 'W'),
-      cpu_usage: sumBy(list, 'CPU Utilization(%)', 1, 0, '%'),
-      cpu_temp: sumBy(list, 'Package Temperature_0(C)', 1, 0, '°'),
-      cpu_maxtemp: sumBy(list, 'CPU Max Temperature_0(C)', 1, 1, '°'),
-      cpu_maxfreq: sumBy(list, 'CPU Max Frequency_0(MHz)', 0.001, 1, 'G'),
-    }
+  liquidctl,
+  intelPowerGadget,
+  all: async () => {
+    return merge(
+      await intelPowerGadget(),
+      await liquidctl('Kraken'),
+      await liquidctl('Smart'),
+    )
   },
 }
