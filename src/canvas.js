@@ -1,25 +1,57 @@
-const { createWriteStream } = require('fs')
+const fs = require('fs')
+const { map } = require('lodash')
 const { createCanvas, loadImage } = require('canvas')
-const { DEBUG } = process.env
-
 const GIFEncoder = require('gifencoder')
 
-// DOCS: https://github.com/Automattic/node-canvas/blob/master/Readme.md
+const { DEBUG } = process.env
 
-const OUTPUT = './output/generated.gif'
+// Node Canvas Docs: https://github.com/Automattic/node-canvas/blob/master/Readme.md
 
-const COLORS = {
-  black: 'rgb(0,0,0)',
-  gray1: 'rgb(36, 36, 36)',
-  gray2: 'rgb(100,100,100)',
-  white: '#ffffff',
-  circle: 'rgb(128, 27, 204)',
-  title: 'rgb(128, 27, 204)',
+const IMAGE_OUTPUT = './output/generated.gif'
+const GAUGE_WIDTH = 38
+
+const FONT = {
+  familly: 'Arial Rounded MT',
+  weight: 'bold',
+  sizes: [34, 28],
 }
 
+const COLORS = {
+  background: 'rgb(0,0,0)',
+  circle: 'rgb(36, 36, 36)',
+  debug: 'rgb(100,100,100)',
+  white: '#ffffff',
+  left: '#009cd4',
+  right: '#d400cb',
+}
+
+const GROUPS = [
+  [
+    { title: 'H2O', metric: 'liquid_temperature' },
+    { title: 'CPU', metric: 'cpu_temp' },
+  ],
+  [
+    { title: 'FAN', metric: 'fan_duty' },
+    { title: 'USE', metric: 'cpu_usage' },
+  ],
+  [
+    { title: 'RPM', metric: 'fan_3_speed' },
+    { title: 'PWR', metric: 'cpu_power' },
+  ],
+  [
+    { title: 'FAN', metric: 'fan_duty' },
+    { title: 'FRQ', metric: 'cpu_freq' },
+  ],
+  [
+    { title: 'SND', metric: 'noise_level' },
+    { title: 'MAX', metric: 'cpu_maxfreq' },
+  ],
+]
+
 const square = (ctx, ax, ay, bx, by) => {
-  ctx.strokeStyle = COLORS.gray2
+  ctx.strokeStyle = COLORS.debug
   ctx.lineWidth = 10
+  // ctx.lineCap = 'square'
   ctx.beginPath()
   ctx.lineTo(ax, ay)
   ctx.lineTo(bx, ay)
@@ -42,75 +74,81 @@ const arc = (ctx, color, x, y, radius, rx, ry, reverse) => {
   ctx.fill()
 }
 
-const gauge = (ctx, color, ratio, left) => {
-  let coords = [-Math.PI * ratio, Math.PI * ratio]
-  if (left) coords = coords.map((c) => Math.PI + c)
+const percentToPi = (percent, left) => {
+  if (left) return [Math.PI + -Math.PI / percent, Math.PI + Math.PI / percent]
+  else return [-Math.PI / percent, Math.PI / percent]
+}
+
+const gauge = (ctx, frame) => {
+  const usage = frameToUsage(frame)
   ctx.beginPath()
-  ctx.strokeStyle = color
-  ctx.lineWidth = 30
+  ctx.strokeStyle = frame.left ? COLORS.left : COLORS.right
+  ctx.lineWidth = GAUGE_WIDTH
   ctx.lineCap = 'round'
-  ctx.arc(160, 160, 145, ...coords)
+  ctx.arc(160, 160, 160 - GAUGE_WIDTH / 2, ...percentToPi(usage, frame.left))
   ctx.fill()
   ctx.stroke()
 }
 
-const splitText = (ctx, title, value, x) => {
-  ctx.fillStyle = COLORS.gray2
-  ctx.font = '24px Impact'
-  text(ctx, title, x, 200)
+const splitText = (ctx, frame) => {
+  const xpos = frame.left ? 110 : 210
+  ctx.fillStyle = frame.left ? COLORS.left : COLORS.right
+  ctx.font = `${FONT.weight} ${FONT.sizes[1]}px "${FONT.familly}"`
+  text(ctx, frame.title, xpos, 200)
   ctx.fillStyle = COLORS.white
-  ctx.font = '30px Impact'
-  text(ctx, value, x, 160)
+  ctx.font = `${FONT.sizes[0]}px "${FONT.familly}"`
+  text(ctx, frame.value, xpos, 160)
+}
+
+const frameToUsage = (frame) => {
+  let ratio = 1
+  if (['RPM'].includes(frame.title)) ratio = 0.075
+  if (['H2O', 'PWR'].includes(frame.title)) ratio = 0.5
+  if (['FRQ', 'MAX'].includes(frame.title)) ratio = 10
+  const value = Number(frame.value.replace(/(G|°|dB|%|W)$/, ''))
+  return percentToGaugeRatio(value * ratio)
 }
 
 const percentToGaugeRatio = (percent) => {
-  const MAX = Math.PI / 7
-  const MIN = Math.PI / 30
-  const ratio = (percent * MAX) / 100
-  if (ratio >= MAX) return MAX
-  if (ratio <= MIN) return MIN
-  return ratio
+  // 100% = 3
+  // 0% = 12
+  if (percent > 100) percent = 100
+  if (percent < 0) percent = 0
+  return (percent / 11.1 - 9) * -1 + 2.3
 }
 
-const frame = (image, usage, t1, v1, t2, v2) => {
+const frame = (image, frames) => {
   const canvas = createCanvas(320, 320)
   const ctx = canvas.getContext('2d')
   // Background
-  arc(ctx, COLORS.gray1, 160, 160, 160, 0, 2 * Math.PI, false)
-  arc(ctx, COLORS.black, 160, 160, 130, 0, 2 * Math.PI, false)
+  arc(ctx, COLORS.circle, 160, 160, 160, 0, 2 * Math.PI, false)
+  arc(ctx, COLORS.background, 160, 160, 160 - GAUGE_WIDTH, 0, 2 * Math.PI, false)
   // Helpers
   if (DEBUG) square(ctx, 60, 60, 260, 260)
-  // Gauges
-  gauge(ctx, COLORS.circle, percentToGaugeRatio(usage[0]), true)
-  gauge(ctx, COLORS.circle, percentToGaugeRatio(usage[1]), false)
+  // Metrics
+  frames.forEach((frame) => {
+    gauge(ctx, frame)
+    splitText(ctx, frame)
+  })
   // NZXT image
   ctx.drawImage(image, 0, 0, 320, 320)
-  // Write text
-  splitText(ctx, t1, v1, 110)
-  splitText(ctx, t2, v2, 210)
   // Return frame
   return ctx
 }
 
 const generate = async (metrics) => {
   const image = await loadImage('./images/kraken.png')
-  const frames = [
-    [metrics.frequency, metrics.package, metrics.power, metrics.usage],
-    // ['CPU', metrics.package, 'POW', metrics.power],
-    // ['FREQ', metrics.frequency, 'USE', metrics.usage],
-  ].map((f) => {
-    const temp = Number(metrics.package.replace(/.$/, ''))
-    const usage = Number(metrics.usage.replace(/%$/, ''))
-    const power = Number(metrics.power.replace(/W$/, ''))
-    return frame(image, [temp, usage], ...f)
+  const groups = map(GROUPS, (group) => {
+    return map(group, (g, i) => ({ ...g, value: metrics[g.metric] || '-', left: i === 0 }))
   })
+  const frames = groups.map((group) => frame(image, group))
   const encoder = new GIFEncoder(320, 320)
-  encoder.createReadStream().pipe(createWriteStream(OUTPUT))
+  encoder.createReadStream().pipe(fs.createWriteStream(IMAGE_OUTPUT))
   encoder.start()
   encoder.setRepeat(0) // 0 for repeat, -1 for no-repeat
-  encoder.setQuality(100) // image quality. 10 is default.
+  encoder.setQuality(10) // image quality. 10 is default.
   for (const frame of frames) {
-    encoder.setDelay(2500) // frame delay in ms
+    encoder.setDelay(3000) // frame delay in ms
     encoder.addFrame(frame)
   }
   encoder.finish()

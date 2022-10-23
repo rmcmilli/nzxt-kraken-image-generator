@@ -11,6 +11,7 @@
   "dependencies": {
     "csvtojson": "^2.0.10",
     "gifencoder": "^2.0.1",
+    "lodash": "^4.17.21",
     "text2png": "^2.3.0"
   }
 }
