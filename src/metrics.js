@@ -68,7 +68,7 @@ const intelPowerGadget = async () => {
 
 const linuxSensors = async () => {
   // const output = "/mnt/c/Users/ronmc/Documents/projects/liquidctl-gif/sensors.json"
-  const output = "../status.json"
+  const output = "../sensors.json"
   var temp_suffix = '°'
   // fs.readFile(output, 'utf8', function(err, data) {
   //   if (err) throw err
