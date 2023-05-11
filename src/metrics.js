@@ -77,7 +77,7 @@ const linuxSensors = async () => {
   //   console.log({cpu_temp: Math.floor(values) + temp_suffix})
   //   return {cpu_temp: Math.floor(values) + temp_suffix}
   // })
-  read_file = fs.readFileSync(output)
+  var read_file = fs.readFileSync(output)
   var values = JSON.parse(read_file)["k10temp-pci-00c3"]["CPU Temp"]["temp1_input"]
   // console.log({cpu_temp: Math.floor(values) + temp_suffix})
   return {
