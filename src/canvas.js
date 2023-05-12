@@ -163,7 +163,10 @@ const generate = async (metrics) => {
       left: i === 0,
     }))
   })
-  const frames = groups.map((group) => frame(image, group))
+  // const newframe = frame(image, group)
+  // function buffer(){ frame.toBuffer('./output/frame.png')
+  // }
+  // const frames = groups.map((group) => frame(image, group))
   const encoder = new GIFEncoder(320, 320)
   encoder.createReadStream().pipe(fs.createWriteStream(IMAGE_OUTPUT))
   encoder.start()
