@@ -52,8 +52,8 @@ const COLORS = {
 
 const GROUPS = [
   [
-    { title: 'H2O', metric: 'liquid_temperature' },
     { title: 'CPU', metric: 'cpu_temp' },
+    { title: 'H2O', metric: 'liquid_temperature' },
   ],
 ]
 
