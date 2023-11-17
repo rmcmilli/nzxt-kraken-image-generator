@@ -2,7 +2,6 @@ const fs = require('fs')
 const { map } = require('lodash')
 const { createCanvas, loadImage } = require('canvas')
 const GIFEncoder = require('gifencoder')
-const PNG = require('pngjs').PNG;
 
 const { DEBUG } = process.env
 
@@ -53,8 +52,8 @@ const COLORS = {
 
 const GROUPS = [
   [
-    { title: 'CPU', metric: 'cpu_temp' },
     { title: 'H2O', metric: 'liquid_temperature' },
+    { title: 'CPU', metric: 'cpu_temp' },
   ],
 ]
 
@@ -155,57 +154,26 @@ const frame = (image, frames) => {
   return ctx
 }
 
-// const generate = async (metrics) => {
-//   const image = await loadImage('./images/kraken.png')
-//   const groups = map(GROUPS, (group) => {
-//     return map(group, (g, i) => ({
-//       ...g,
-//       value: metrics[g.metric] || '-',
-//       left: i === 0,
-//     }))
-//   })
-//   // const newframe = frame(image, group)
-//   // function buffer(){ frame.toBuffer('./output/frame.png')
-//   // }
-//   // const frames = groups.map((group) => frame(image, group))
-//   const encoder = new GIFEncoder(320, 320)
-//   encoder.createReadStream().pipe(fs.createWriteStream(IMAGE_OUTPUT))
-//   encoder.start()
-//   encoder.setRepeat(0) // 0 for repeat, -1 for no-repeat
-//   encoder.setQuality(10) // image quality. 10 is default.
-//   for (const frame of frames) {
-//     encoder.setDelay(3000) // frame delay in ms
-//     encoder.addFrame(frame)
-//   }
-//   encoder.finish()
-// }
-
 const generate = async (metrics) => {
-  const IMAGE_OUTPUT = "./output/generated.png";
-  const image = await loadImage("./images/kraken.png");
+  const image = await loadImage('./images/kraken.png')
   const groups = map(GROUPS, (group) => {
     return map(group, (g, i) => ({
       ...g,
-      value: metrics[g.metric] || "-",
+      value: metrics[g.metric] || '-',
       left: i === 0,
-    }));
-  });
-  
-  const canvas = createCanvas(320, 320);
-  const ctx = canvas.getContext("2d");
-  
-  for (const group of groups) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0);
-    
-    for (const g of group) {
-      // Draw group elements on the canvas
-      // Use g.value and g.left to position elements appropriately
-    }
-    
-    const buffer = canvas.toBuffer("image/png"); // Convert canvas to PNG buffer
-    fs.writeFileSync(IMAGE_OUTPUT, buffer); // Write PNG buffer to file
+    }))
+  })
+  const frames = groups.map((group) => frame(image, group))
+  const encoder = new GIFEncoder(320, 320)
+  encoder.createReadStream().pipe(fs.createWriteStream(IMAGE_OUTPUT))
+  encoder.start()
+  encoder.setRepeat(0) // 0 for repeat, -1 for no-repeat
+  encoder.setQuality(10) // image quality. 10 is default.
+  for (const frame of frames) {
+    encoder.setDelay(3000) // frame delay in ms
+    encoder.addFrame(frame)
   }
+  encoder.finish()
 }
 
 module.exports = { generate }
