@@ -26,7 +26,8 @@ const cleanUnits = (str) => str.replace(/°[CF]/, '°').replace(/rpm/, '')
 
 const liquidctl = async (device) => {
   // const liquidctl_status = "/mnt/c/Users/ronmc/Documents/projects/liquidctl-gif/status.json"
-  const liquidctl_status = "../status.json"
+  // const liquidctl_status = "../status.json"
+  const liquidctl_status = __dirname + "/../../status.json"
   // fs.readFile(liquidctl_status, 'utf8', function(err, data) {
   //   if (err) throw err
   //   const status = JSON.parse(data)[0].status
@@ -68,7 +69,8 @@ const intelPowerGadget = async () => {
 
 const linuxSensors = async () => {
   // const output = "/mnt/c/Users/ronmc/Documents/projects/liquidctl-gif/sensors.json"
-  const output = "../sensors.json"
+  // const output = "../sensors.json"
+  const output = __dirname + "/../../sensors.json"
   var temp_suffix = '°'
   // fs.readFile(output, 'utf8', function(err, data) {
   //   if (err) throw err

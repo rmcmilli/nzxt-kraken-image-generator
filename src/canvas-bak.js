@@ -1,8 +1,7 @@
 const fs = require('fs')
-const { map, size } = require('lodash')
+const { map } = require('lodash')
 const { createCanvas, loadImage } = require('canvas')
 const GIFEncoder = require('gifencoder')
-const PNG = require('pngjs').PNG;
 
 const { DEBUG } = process.env
 
@@ -152,49 +151,32 @@ const frame = (image, frames) => {
   // NZXT image
   ctx.drawImage(image, 0, 0, 320, 320)
   // Return frame
-  // return ctx
-  // return ctx.canvas
-  // Get the PNG buffer from the canvas
-  const buffer = canvas.toBuffer('image/png');
-  fs.writeFileSync('./output/test.png', buffer);
-  return canvas
+  return ctx
 }
 
-
-
 const generate = async (metrics) => {
-  const IMAGE_OUTPUT = __dirname + "/../output/generated.png";
-  // const image = await loadImage("./images/kraken.png");
-  const image = await loadImage(__dirname + "/../images/kraken.png");
+  const image = await loadImage('./images/kraken.png')
   const groups = map(GROUPS, (group) => {
     return map(group, (g, i) => ({
       ...g,
-      value: metrics[g.metric] || "-",
+      value: metrics[g.metric] || '-',
       left: i === 0,
-    }));
-  });
-  
-  // const canvas = createCanvas(320, 320);
-  // const ctx = canvas.getContext("2d");
-  const frames = groups.map((group) => frame(image, group))
-  const encoder = new PNG({ width: 320, height: 320 });
-
-
+    }))
+  })
+  // const newframe = frame(image, group)
+  // function buffer(){ frame.toBuffer('./output/frame.png')
+  // }
+  // const frames = groups.map((group) => frame(image, group))
+  const encoder = new GIFEncoder(320, 320)
+  encoder.createReadStream().pipe(fs.createWriteStream(IMAGE_OUTPUT))
+  encoder.start()
+  encoder.setRepeat(0) // 0 for repeat, -1 for no-repeat
+  encoder.setQuality(10) // image quality. 10 is default.
   for (const frame of frames) {
-    // const ctx = frame.getContext("2d");
-    // const imageData = ctx.getImageData(0, 0, 320, 320);
-    // const imageData = frame.getImageData(0, 0, 320, 320);
-    // const dataUrl = frame.toDataURL('image/png');
-    // const dataUrl = frame.toDataURL('image/png', { size: 1 } )
-    // const buffer = PNG.sync.write(dataUrl);
-    // const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-    const buffer = frame.toBuffer('image/png');
-    // const buffer = PNG.sync.write(imageData);
-    // encoder.data = buffer;
-    // encoder.pack().pipe(fs.createWriteStream(IMAGE_OUTPUT));
-    fs.writeFileSync(IMAGE_OUTPUT, buffer);
+    encoder.setDelay(3000) // frame delay in ms
+    encoder.addFrame(frame)
   }
-
+  encoder.finish()
 }
 
 module.exports = { generate }
