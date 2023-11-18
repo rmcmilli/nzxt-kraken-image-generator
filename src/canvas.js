@@ -28,28 +28,6 @@ const COLORS = {
   right: '#d400cb',
 }
 
-// const GROUPS = [
-//   [
-//     { title: 'H2O', metric: 'liquid_temperature' },
-//     { title: 'CPU', metric: 'cpu_temp' },
-//   ],
-//   [
-//     { title: 'FAN', metric: 'fan_duty' },
-//     { title: 'USE', metric: 'cpu_usage' },
-//   ],
-//   [
-//     { title: 'RPM', metric: 'fan_3_speed' },
-//     { title: 'PWR', metric: 'cpu_power' },
-//   ],
-//   [
-//     { title: 'FAN', metric: 'fan_duty' },
-//     { title: 'FRQ', metric: 'cpu_freq' },
-//   ],
-//   [
-//     { title: 'SND', metric: 'noise_level' },
-//     { title: 'MAX', metric: 'cpu_maxfreq' },
-//   ],
-// ]
 
 const GROUPS = [
   [
@@ -181,17 +159,7 @@ const generate = async (metrics) => {
 
 
   for (const frame of frames) {
-    // const ctx = frame.getContext("2d");
-    // const imageData = ctx.getImageData(0, 0, 320, 320);
-    // const imageData = frame.getImageData(0, 0, 320, 320);
-    // const dataUrl = frame.toDataURL('image/png');
-    // const dataUrl = frame.toDataURL('image/png', { size: 1 } )
-    // const buffer = PNG.sync.write(dataUrl);
-    // const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
     const buffer = frame.toBuffer('image/png');
-    // const buffer = PNG.sync.write(imageData);
-    // encoder.data = buffer;
-    // encoder.pack().pipe(fs.createWriteStream(IMAGE_OUTPUT));
     fs.writeFileSync(IMAGE_OUTPUT, buffer);
   }
 
