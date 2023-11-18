@@ -135,8 +135,8 @@ const frame = (image, frames) => {
   // return ctx
   // return ctx.canvas
   // Get the PNG buffer from the canvas
-  const buffer = canvas.toBuffer('image/png');
-  fs.writeFileSync('./output/test.png', buffer);
+  // const buffer = canvas.toBuffer('image/png');
+  // fs.writeFileSync('./output/test.png', buffer);
   return canvas
 }
 
