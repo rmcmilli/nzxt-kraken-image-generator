@@ -24,8 +24,10 @@ const COLORS = {
   circle: 'rgb(36, 36, 36)',
   debug: 'rgb(100,100,100)',
   white: '#ffffff',
-  left: '#009cd4',
-  right: '#d400cb',
+  left: '#ffffff',
+  right: '#ffffff',
+  // left: '#009cd4',
+  // right: '#d400cb',
 }
 
 
